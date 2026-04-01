@@ -180,10 +180,25 @@ export function GPUStatus() {
               </div>
             )}
 
-            {/* Auto-shutdown info */}
+            {/* Auto-shutdown countdown */}
             {isOnline && (
-              <div className="pt-1.5 border-t border-dark-600 text-dark-500">
-                Auto-shuts down after 20 min idle
+              <div className="pt-1.5 border-t border-dark-600">
+                {gpuDetails?.auto_shutdown_remaining_seconds != null ? (
+                  <div className="flex items-center justify-between">
+                    <span className="text-dark-400 flex items-center gap-1.5">
+                      <Clock className="w-3 h-3" />Auto-shutdown
+                    </span>
+                    <span className={`font-mono ${
+                      gpuDetails.auto_shutdown_remaining_seconds < 300 ? 'text-red-400' :
+                      gpuDetails.auto_shutdown_remaining_seconds < 600 ? 'text-yellow-400' :
+                      'text-dark-300'
+                    }`}>
+                      {formatElapsed(gpuDetails.auto_shutdown_remaining_seconds * 1000)}
+                    </span>
+                  </div>
+                ) : (
+                  <span className="text-dark-500">Auto-shuts down after 20 min idle</span>
+                )}
               </div>
             )}
           </div>
