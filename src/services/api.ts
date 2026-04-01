@@ -46,6 +46,10 @@ export const api = {
     return request('/gpu/boot', { method: 'POST' });
   },
 
+  async shutdownGPU(): Promise<{ status: string }> {
+    return request('/gpu/stop', { method: 'POST' });
+  },
+
   // Smart search — runs on GCP backend, no GPU needed, AI picks best match
   async smartSearch(query: string): Promise<{
     results: SearchResult[];

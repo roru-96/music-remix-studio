@@ -47,12 +47,15 @@ export interface JobStatus {
 
 export interface GPUStatus {
   status: string;
-  provider: string;
-  instance_id?: string;
-  ip?: string;
-  gpu_name?: string;
-  vram_total_gb?: number;
-  vram_used_gb?: number;
+  cloud_provider?: string;
+  gpu_type?: string;
+  instance_ip?: string;
+  loaded_model?: string | null;
+  idle_seconds?: number | null;
+  auto_shutdown_remaining_seconds?: number | null;
+  gpu_info?: string | null;
+  gpu_price_per_hour?: number | null;
+  boot_log?: string[];
 }
 
 export interface LibraryEntry {

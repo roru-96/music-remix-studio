@@ -76,9 +76,12 @@ interface RemixState {
 
   // GPU
   gpuStatus: string;
+  gpuDetails: import('../types').GPUStatus | null;
   gpuLoading: boolean;
+  gpuBootStarted: number | null;
   checkGPU: () => Promise<void>;
   bootGPU: () => Promise<void>;
+  shutdownGPU: () => Promise<void>;
 
   // Reset
   resetToSearch: () => void;
@@ -296,32 +299,44 @@ export const useRemixStore = create<RemixState>((set, get) => ({
 
   // GPU
   gpuStatus: 'unknown',
+  gpuDetails: null,
   gpuLoading: false,
+  gpuBootStarted: null,
   checkGPU: async () => {
     try {
       const data = await api.getGPUStatus();
-      set({ gpuStatus: data.status });
+      set({ gpuStatus: data.status, gpuDetails: data });
+      if (data.status === 'online') {
+        set({ gpuLoading: false, gpuBootStarted: null });
+      }
     } catch {
-      set({ gpuStatus: 'offline' });
+      set({ gpuStatus: 'offline', gpuDetails: null });
     }
   },
   bootGPU: async () => {
-    set({ gpuLoading: true });
+    set({ gpuLoading: true, gpuBootStarted: Date.now() });
     try {
       await api.bootGPU();
       const poll = setInterval(async () => {
         try {
           const data = await api.getGPUStatus();
+          set({ gpuDetails: data });
           if (data.status === 'online') {
             clearInterval(poll);
-            set({ gpuStatus: 'online', gpuLoading: false });
+            set({ gpuStatus: 'online', gpuLoading: false, gpuBootStarted: null });
           }
         } catch { /* keep polling */ }
       }, 5000);
       setTimeout(() => { clearInterval(poll); set({ gpuLoading: false }); }, 300000);
     } catch {
-      set({ gpuLoading: false });
+      set({ gpuLoading: false, gpuBootStarted: null });
     }
+  },
+  shutdownGPU: async () => {
+    try {
+      await api.shutdownGPU();
+      set({ gpuStatus: 'offline', gpuDetails: null, gpuLoading: false, gpuBootStarted: null });
+    } catch { /* ignore */ }
   },
 
   // Reset
