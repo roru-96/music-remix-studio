@@ -32,6 +32,17 @@ export interface JobStatus {
   error?: string;
   voice_conversion_error?: string;
   style_transfer_error?: string;
+  // Timing
+  stage_started_at?: number;
+  estimated_seconds?: number;
+  elapsed_seconds?: number;
+  total_elapsed_seconds?: number;
+  // Training-specific
+  current_song?: string;
+  vocals_extracted?: number;
+  training_minutes?: number;
+  model_path?: string;
+  training_error?: string;
 }
 
 export interface GPUStatus {
@@ -44,26 +55,16 @@ export interface GPUStatus {
   vram_used_gb?: number;
 }
 
-export type WizardStep = 'search' | 'options' | 'processing' | 'results';
-
-export interface StylePreset {
+export interface LibraryEntry {
   id: string;
-  name: string;
-  icon: string;
-  prompt: string;
+  song_title: string;
+  song_artist: string;
+  voice_artist: string | null;
+  style_prompt: string | null;
+  created_at: string;
+  version: number;
+  parent_id: string | null;
+  files: Record<string, string>;
 }
 
-export const STYLE_PRESETS: StylePreset[] = [
-  { id: 'jazz', name: 'Jazz', icon: '🎷', prompt: 'Jazz quartet with upright bass, brushed drums, piano trio, warm analog tone' },
-  { id: 'classical', name: 'Classical', icon: '🎻', prompt: 'Classical orchestral arrangement with strings, woodwinds, and French horn' },
-  { id: 'electronic', name: 'Electronic', icon: '🎛️', prompt: 'Electronic dance music with synthesizers, 808 drums, and deep bass' },
-  { id: 'acoustic', name: 'Acoustic', icon: '🎸', prompt: 'Acoustic arrangement with fingerpicked guitar, light percussion, and warm vocals' },
-  { id: 'lofi', name: 'Lo-fi', icon: '📻', prompt: 'Lo-fi hip hop with vinyl crackle, mellow piano chords, and relaxed drums' },
-  { id: 'orchestral', name: 'Orchestral', icon: '🎼', prompt: 'Full symphony orchestra with sweeping strings, brass fanfares, and timpani' },
-  { id: 'rock', name: 'Rock', icon: '🎸', prompt: 'Rock band with electric guitar, driving drums, and distorted bass' },
-  { id: 'metal', name: 'Metal', icon: '🤘', prompt: 'Heavy metal with distorted guitars, double kick drums, and aggressive bass' },
-  { id: 'rnb', name: 'R&B', icon: '🎤', prompt: 'Smooth R&B with neo-soul keys, muted guitar, and groovy bass' },
-  { id: 'reggae', name: 'Reggae', icon: '🌴', prompt: 'Reggae with off-beat guitar skank, deep bass, and one-drop drums' },
-  { id: 'latin', name: 'Latin', icon: '💃', prompt: 'Latin music with congas, bongos, brass section, and rhythmic acoustic guitar' },
-  { id: 'country', name: 'Country', icon: '🤠', prompt: 'Country arrangement with steel guitar, fiddle, acoustic guitar, and train-beat drums' },
-];
+export type WizardStep = 'search' | 'options' | 'processing' | 'results' | 'library';

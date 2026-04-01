@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { SearchResult, JobStatus, WizardStep } from '../types';
+import type { SearchResult, JobStatus, WizardStep, LibraryEntry } from '../types';
 import { api } from '../services/api';
 import type { VoiceSuggestion, HFModel, StyleIdea } from '../services/api';
 
@@ -65,6 +65,15 @@ interface RemixState {
   cancelJob: () => void;
   _pollTimer: ReturnType<typeof setInterval> | null;
 
+  // Library
+  libraryEntries: LibraryEntry[];
+  libraryLoading: boolean;
+  lastSavedId: string | null;
+  parentRemixId: string | null;
+  loadLibrary: () => Promise<void>;
+  saveToLibrary: () => Promise<void>;
+  deleteFromLibrary: (id: string) => Promise<void>;
+
   // GPU
   gpuStatus: string;
   gpuLoading: boolean;
@@ -102,10 +111,7 @@ export const useRemixStore = create<RemixState>((set, get) => ({
         searchLoading: false,
       });
     } catch (e) {
-      set({
-        searchLoading: false,
-        searchError: e instanceof Error ? e.message : 'Search failed',
-      });
+      set({ searchLoading: false, searchError: e instanceof Error ? e.message : 'Search failed' });
     }
   },
 
@@ -128,11 +134,7 @@ export const useRemixStore = create<RemixState>((set, get) => ({
     try {
       const song = get().selectedSong;
       const data = await api.aiVoiceOptions(artist, song?.title);
-      set({
-        voiceSuggestions: data.suggestions,
-        hfModels: data.models,
-        voiceLoading: false,
-      });
+      set({ voiceSuggestions: data.suggestions, hfModels: data.models, voiceLoading: false });
     } catch {
       set({ voiceLoading: false });
     }
@@ -200,7 +202,7 @@ export const useRemixStore = create<RemixState>((set, get) => ({
     const state = get();
     if (!state.selectedSong) return;
 
-    set({ step: 'processing', jobError: null, jobStatus: null });
+    set({ step: 'processing', jobError: null, jobStatus: null, lastSavedId: null });
 
     try {
       const params: Record<string, unknown> = {
@@ -240,15 +242,56 @@ export const useRemixStore = create<RemixState>((set, get) => ({
         if (_pollTimer) clearInterval(_pollTimer);
         set({ _pollTimer: null, jobError: status.error || 'Pipeline failed' });
       }
-    } catch {
-      // Keep polling on transient errors
-    }
+    } catch { /* keep polling */ }
   },
 
   cancelJob: () => {
     const { _pollTimer } = get();
     if (_pollTimer) clearInterval(_pollTimer);
     set({ _pollTimer: null, jobId: null, jobStatus: null, step: 'options' });
+  },
+
+  // Library
+  libraryEntries: [],
+  libraryLoading: false,
+  lastSavedId: null,
+  parentRemixId: null,
+
+  loadLibrary: async () => {
+    set({ libraryLoading: true });
+    try {
+      const data = await api.getLibrary();
+      set({ libraryEntries: data.remixes, libraryLoading: false });
+    } catch {
+      set({ libraryLoading: false });
+    }
+  },
+
+  saveToLibrary: async () => {
+    const state = get();
+    if (!state.jobId || !state.selectedSong) return;
+    try {
+      const result = await api.saveToLibrary({
+        job_id: state.jobId,
+        song_title: state.selectedSong.title,
+        song_artist: state.selectedSong.channel,
+        voice_artist: state.voiceSwapEnabled ? state.targetArtist : undefined,
+        style_prompt: state.styleEnabled ? state.customStylePrompt : undefined,
+        parent_id: state.parentRemixId || undefined,
+      });
+      set({ lastSavedId: result.id, parentRemixId: result.id });
+    } catch (e) {
+      console.error('Save failed:', e);
+    }
+  },
+
+  deleteFromLibrary: async (id) => {
+    try {
+      await api.deleteFromLibrary(id);
+      set({ libraryEntries: get().libraryEntries.filter(e => e.id !== id) });
+    } catch (e) {
+      console.error('Delete failed:', e);
+    }
   },
 
   // GPU
@@ -304,12 +347,21 @@ export const useRemixStore = create<RemixState>((set, get) => ({
     jobId: null,
     jobStatus: null,
     jobError: null,
+    lastSavedId: null,
+    parentRemixId: null,
   }),
 
-  resetToOptions: () => set({
-    step: 'options',
-    jobId: null,
-    jobStatus: null,
-    jobError: null,
-  }),
+  resetToOptions: () => {
+    const state = get();
+    // If current remix was saved, set it as parent for next version
+    const parentId = state.lastSavedId || state.parentRemixId;
+    set({
+      step: 'options',
+      jobId: null,
+      jobStatus: null,
+      jobError: null,
+      lastSavedId: null,
+      parentRemixId: parentId,
+    });
+  },
 }));

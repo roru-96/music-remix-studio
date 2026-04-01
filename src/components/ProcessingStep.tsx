@@ -1,4 +1,5 @@
-import { Check, Loader2, X } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Check, Loader2, X, Clock } from 'lucide-react';
 import { useRemixStore } from '../stores/remixStore';
 
 const STAGES = [
@@ -10,13 +11,36 @@ const STAGES = [
   { key: 'mixing', label: 'Mixing final audio' },
 ];
 
+function formatTime(seconds: number): string {
+  if (seconds < 60) return `${Math.floor(seconds)}s`;
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}m ${s}s`;
+}
+
 export function ProcessingStep() {
   const { jobStatus, jobError, cancelJob, voiceSwapEnabled, styleEnabled } = useRemixStore();
+  const [elapsed, setElapsed] = useState(0);
 
   const currentStage = jobStatus?.stage || 'searching';
   const progress = jobStatus?.progress || 0;
+  const stageStarted = jobStatus?.stage_started_at || 0;
+  const estimatedSecs = jobStatus?.estimated_seconds || 0;
 
-  // Filter stages based on enabled options
+  // Live elapsed timer
+  useEffect(() => {
+    if (!stageStarted || jobStatus?.status !== 'processing') return;
+    const interval = setInterval(() => {
+      setElapsed(Math.floor(Date.now() / 1000 - stageStarted));
+    }, 500);
+    return () => clearInterval(interval);
+  }, [stageStarted, jobStatus?.status]);
+
+  // Reset elapsed on stage change
+  useEffect(() => {
+    setElapsed(0);
+  }, [currentStage]);
+
   const activeStages = STAGES.filter((s) => {
     if (s.key === 'converting_voice' && !voiceSwapEnabled) return false;
     if (s.key === 'transferring_style' && !styleEnabled) return false;
@@ -24,6 +48,7 @@ export function ProcessingStep() {
   });
 
   const currentIndex = activeStages.findIndex((s) => s.key === currentStage);
+  const remaining = estimatedSecs > 0 ? Math.max(0, estimatedSecs - elapsed) : 0;
 
   return (
     <div className="max-w-lg mx-auto space-y-8">
@@ -35,11 +60,25 @@ export function ProcessingStep() {
       </div>
 
       {/* Progress bar */}
-      <div className="w-full bg-dark-700 rounded-full h-2 overflow-hidden">
-        <div
-          className="bg-orange-500 h-full rounded-full transition-all duration-500 ease-out"
-          style={{ width: `${progress}%` }}
-        />
+      <div className="space-y-2">
+        <div className="w-full bg-dark-700 rounded-full h-2 overflow-hidden">
+          <div
+            className="bg-orange-500 h-full rounded-full transition-all duration-500 ease-out"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+        {/* Timer */}
+        {jobStatus?.status === 'processing' && (
+          <div className="flex items-center justify-between text-xs text-dark-400">
+            <div className="flex items-center gap-1">
+              <Clock className="w-3 h-3" />
+              <span>Elapsed: {formatTime(elapsed)}</span>
+            </div>
+            {remaining > 0 && (
+              <span>~{formatTime(remaining)} remaining</span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Stages */}
@@ -74,11 +113,16 @@ export function ProcessingStep() {
                   <span className="text-xs">{i + 1}</span>
                 )}
               </div>
-              <span className={`text-sm ${
-                isComplete ? 'text-dark-300' : isCurrent ? 'text-dark-100 font-medium' : 'text-dark-500'
-              }`}>
-                {stage.label}
-              </span>
+              <div className="flex-1">
+                <span className={`text-sm ${
+                  isComplete ? 'text-dark-300' : isCurrent ? 'text-dark-100 font-medium' : 'text-dark-500'
+                }`}>
+                  {stage.label}
+                </span>
+              </div>
+              {isCurrent && elapsed > 0 && (
+                <span className="text-xs text-dark-500">{formatTime(elapsed)}</span>
+              )}
             </div>
           );
         })}

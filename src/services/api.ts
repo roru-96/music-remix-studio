@@ -115,6 +115,29 @@ export const api = {
     return request(`/music-remix/jobs/${jobId}`);
   },
 
+  // Library
+  async getLibrary(): Promise<{ remixes: import('../types').LibraryEntry[] }> {
+    return request('/music-remix/library');
+  },
+
+  async saveToLibrary(params: {
+    job_id: string;
+    song_title: string;
+    song_artist: string;
+    voice_artist?: string;
+    style_prompt?: string;
+    parent_id?: string;
+  }): Promise<{ id: string; version: number; files_saved: number }> {
+    return request('/music-remix/library/save', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    });
+  },
+
+  async deleteFromLibrary(id: string): Promise<void> {
+    return request(`/music-remix/library/${id}`, { method: 'DELETE' });
+  },
+
   // File URLs
   getFileUrl(filename: string): string {
     return `${API_BASE}/music-remix/files/${filename}`;
