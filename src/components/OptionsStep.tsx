@@ -81,7 +81,9 @@ export function OptionsStep() {
                   className="w-full pl-10 pr-4 py-2.5 bg-dark-800 border border-dark-600 rounded-lg text-dark-100 placeholder-dark-400 text-sm focus:outline-none focus:border-orange-500"
                 />
                 {store.voiceLoading && (
-                  <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-orange-400 animate-spin" />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <Loader2 className="w-4 h-4 text-orange-400 animate-spin" />
+                  </div>
                 )}
               </div>
 
