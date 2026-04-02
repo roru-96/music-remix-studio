@@ -33,6 +33,8 @@ export interface JobStatus {
   voice_conversion_error?: string;
   style_transfer_error?: string;
   original_audio?: string;
+  stage_times?: Record<string, number>;
+  started_at?: number;
   // Timing
   stage_started_at?: number;
   estimated_seconds?: number;

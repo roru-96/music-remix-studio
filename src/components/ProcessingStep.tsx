@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Check, Loader2, X, Clock } from 'lucide-react';
+import { Check, Loader2, X, Clock, Timer } from 'lucide-react';
 import { useRemixStore } from '../stores/remixStore';
 
 const STAGES = [
@@ -21,13 +21,16 @@ function formatTime(seconds: number): string {
 export function ProcessingStep() {
   const { jobStatus, jobError, cancelJob, voiceSwapEnabled, styleEnabled } = useRemixStore();
   const [elapsed, setElapsed] = useState(0);
+  const [totalElapsed, setTotalElapsed] = useState(0);
 
   const currentStage = jobStatus?.stage || 'searching';
   const progress = jobStatus?.progress || 0;
   const stageStarted = jobStatus?.stage_started_at || 0;
   const estimatedSecs = jobStatus?.estimated_seconds || 0;
+  const stageTimes = jobStatus?.stage_times || {};
+  const jobStarted = jobStatus?.started_at || 0;
 
-  // Live elapsed timer
+  // Live elapsed timer for current stage
   useEffect(() => {
     if (!stageStarted || jobStatus?.status !== 'processing') return;
     const interval = setInterval(() => {
@@ -36,10 +39,16 @@ export function ProcessingStep() {
     return () => clearInterval(interval);
   }, [stageStarted, jobStatus?.status]);
 
-  // Reset elapsed on stage change
+  // Total elapsed timer
   useEffect(() => {
-    setElapsed(0);
-  }, [currentStage]);
+    if (!jobStarted || jobStatus?.status !== 'processing') return;
+    const interval = setInterval(() => {
+      setTotalElapsed(Math.floor(Date.now() / 1000 - jobStarted));
+    }, 500);
+    return () => clearInterval(interval);
+  }, [jobStarted, jobStatus?.status]);
+
+  useEffect(() => { setElapsed(0); }, [currentStage]);
 
   const activeStages = STAGES.filter((s) => {
     if (s.key === 'converting_voice' && !voiceSwapEnabled) return false;
@@ -67,12 +76,18 @@ export function ProcessingStep() {
             style={{ width: `${progress}%` }}
           />
         </div>
-        {/* Timer */}
+        {/* Timers */}
         {jobStatus?.status === 'processing' && (
           <div className="flex items-center justify-between text-xs text-dark-400">
-            <div className="flex items-center gap-1">
-              <Clock className="w-3 h-3" />
-              <span>Elapsed: {formatTime(elapsed)}</span>
+            <div className="flex items-center gap-3">
+              <span className="flex items-center gap-1">
+                <Timer className="w-3 h-3" />
+                Total: {formatTime(totalElapsed)}
+              </span>
+              <span className="flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                Stage: {formatTime(elapsed)}
+              </span>
             </div>
             {remaining > 0 && (
               <span>~{formatTime(remaining)} remaining</span>
@@ -86,13 +101,14 @@ export function ProcessingStep() {
         {activeStages.map((stage, i) => {
           const isComplete = i < currentIndex;
           const isCurrent = stage.key === currentStage;
+          const stageTime = stageTimes[stage.key];
 
           return (
             <div
               key={stage.key}
               className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
                 isCurrent
-                  ? 'bg-orange-500/10 border border-orange-500/30 animate-pulse-orange'
+                  ? 'bg-orange-500/10 border border-orange-500/30'
                   : isComplete
                   ? 'bg-dark-700/50'
                   : 'bg-dark-800/30'
@@ -120,8 +136,13 @@ export function ProcessingStep() {
                   {stage.label}
                 </span>
               </div>
+              {/* Show time for completed stages */}
+              {isComplete && stageTime != null && (
+                <span className="text-xs text-dark-500">{formatTime(stageTime)}</span>
+              )}
+              {/* Show live elapsed for current stage */}
               {isCurrent && elapsed > 0 && (
-                <span className="text-xs text-dark-500">{formatTime(elapsed)}</span>
+                <span className="text-xs text-orange-400">{formatTime(elapsed)}</span>
               )}
             </div>
           );
