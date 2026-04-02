@@ -230,7 +230,10 @@ export const useRemixStore = create<RemixState>((set, get) => ({
       const timer = setInterval(() => get().pollJob(), 2000);
       set({ _pollTimer: timer });
     } catch (e) {
-      set({ jobError: e instanceof Error ? e.message : 'Failed to start remix', step: 'options' });
+      const msg = e instanceof Error ? e.message : 'Failed to start remix';
+      console.error('startRemix failed:', msg);
+      set({ jobError: msg });
+      // Stay on processing page to show the error, don't bounce back
     }
   },
 
