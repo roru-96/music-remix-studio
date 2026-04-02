@@ -90,14 +90,17 @@ export const api = {
   // Train custom voice model from artist's songs
   async trainVoice(artistName: string, numSongs?: number): Promise<{
     job_id: string;
-    songs_found: number;
-    songs: { title: string; video_id: string }[];
     artist: string;
   }> {
     return request('/music-remix/train-voice', {
       method: 'POST',
       body: JSON.stringify({ artist_name: artistName, num_songs: numSongs || 5 }),
     });
+  },
+
+  // Poll training job (separate from GPU jobs)
+  async getTrainingJobStatus(jobId: string): Promise<Record<string, unknown>> {
+    return request(`/music-remix/train-voice/jobs/${jobId}`);
   },
 
   // Full remix pipeline

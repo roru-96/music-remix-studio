@@ -154,7 +154,7 @@ export const useRemixStore = create<RemixState>((set, get) => ({
     set({ trainingJobId: null, trainingStatus: null, trainingSongs: [] });
     try {
       const data = await api.trainVoice(artist, 5);
-      set({ trainingJobId: data.job_id, trainingSongs: data.songs });
+      set({ trainingJobId: data.job_id });
       const timer = setInterval(() => get().pollTraining(), 3000);
       set({ _trainingPollTimer: timer });
     } catch (e) {
@@ -165,8 +165,10 @@ export const useRemixStore = create<RemixState>((set, get) => ({
     const { trainingJobId, _trainingPollTimer } = get();
     if (!trainingJobId) return;
     try {
-      const status = await api.getJobStatus(trainingJobId);
+      const data = await api.getTrainingJobStatus(trainingJobId);
+      const status = data as unknown as JobStatus;
       set({ trainingStatus: status });
+      if (data.songs) set({ trainingSongs: data.songs as { title: string; video_id: string }[] });
       if (status.status === 'complete' || status.status === 'error') {
         if (_trainingPollTimer) clearInterval(_trainingPollTimer);
         set({ _trainingPollTimer: null });
