@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { ArrowLeft, Trash2, Clock, Mic, Palette } from 'lucide-react';
+import { ArrowLeft, Trash2, Clock, Mic, Palette, Disc } from 'lucide-react';
 import { useRemixStore } from '../stores/remixStore';
 import { AudioPlayer } from './AudioPlayer';
 import type { LibraryEntry } from '../types';
@@ -14,6 +14,8 @@ function EntryCard({ entry }: { entry: LibraryEntry }) {
   const { deleteFromLibrary } = useRemixStore();
   const date = new Date(entry.created_at);
   const dateStr = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+  const stemKeys = Object.keys(entry.files).filter(k => !['final_mix', 'original'].includes(k));
 
   return (
     <div className="bg-dark-700 rounded-xl p-4 space-y-3">
@@ -52,27 +54,39 @@ function EntryCard({ entry }: { entry: LibraryEntry }) {
         </span>
       </div>
 
-      {/* Audio players */}
+      {/* Remixed version */}
       {entry.files.final_mix && (
-        <AudioPlayer src={libraryFileUrl(entry.id, 'final_mix')} label="Final Mix" />
+        <div>
+          <p className="text-dark-400 text-xs mb-1 font-medium uppercase tracking-wide">Remixed</p>
+          <AudioPlayer src={libraryFileUrl(entry.id, 'final_mix')} label="Final Mix" />
+        </div>
       )}
 
-      {Object.entries(entry.files).filter(([k]) => k !== 'final_mix').length > 0 && (
+      {/* Original */}
+      {entry.files.original && (
+        <div>
+          <p className="text-dark-400 text-xs mb-1 font-medium uppercase tracking-wide flex items-center gap-1">
+            <Disc className="w-3 h-3" />Original
+          </p>
+          <AudioPlayer src={libraryFileUrl(entry.id, 'original')} label="Original" compact />
+        </div>
+      )}
+
+      {/* Stems */}
+      {stemKeys.length > 0 && (
         <details className="group">
           <summary className="text-dark-400 text-xs cursor-pointer hover:text-dark-200">
-            Stems ({Object.keys(entry.files).length - 1})
+            Stems ({stemKeys.length})
           </summary>
           <div className="mt-2 space-y-1.5">
-            {Object.entries(entry.files)
-              .filter(([k]) => k !== 'final_mix')
-              .map(([key]) => (
-                <AudioPlayer
-                  key={key}
-                  src={libraryFileUrl(entry.id, key)}
-                  label={key.replace(/_/g, ' ').replace(/^\w/, c => c.toUpperCase())}
-                  compact
-                />
-              ))}
+            {stemKeys.map((key) => (
+              <AudioPlayer
+                key={key}
+                src={libraryFileUrl(entry.id, key)}
+                label={key.replace(/_/g, ' ').replace(/^\w/, c => c.toUpperCase())}
+                compact
+              />
+            ))}
           </div>
         </details>
       )}

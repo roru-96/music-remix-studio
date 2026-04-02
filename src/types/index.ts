@@ -32,6 +32,7 @@ export interface JobStatus {
   error?: string;
   voice_conversion_error?: string;
   style_transfer_error?: string;
+  original_audio?: string;
   // Timing
   stage_started_at?: number;
   estimated_seconds?: number;

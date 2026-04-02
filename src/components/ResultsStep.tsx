@@ -1,4 +1,4 @@
-import { RotateCcw, Music, Save, Check, Clock } from 'lucide-react';
+import { RotateCcw, Music, Save, Check, Clock, Disc } from 'lucide-react';
 import { useRemixStore } from '../stores/remixStore';
 import { AudioPlayer } from './AudioPlayer';
 import { api } from '../services/api';
@@ -23,6 +23,10 @@ export function ResultsStep() {
     ? api.getFileUrl(jobStatus.download_url.replace('/files/', ''))
     : jobStatus.output_path
     ? api.getFileByPathUrl(jobStatus.output_path)
+    : null;
+
+  const originalUrl = jobStatus.original_audio
+    ? api.getFileByPathUrl(jobStatus.original_audio)
     : null;
 
   const stemEntries = Object.entries(jobStatus.stems || {}).filter(
@@ -51,9 +55,22 @@ export function ResultsStep() {
         )}
       </div>
 
-      {/* Main player */}
+      {/* Remix (final mix) */}
       {finalUrl && (
-        <AudioPlayer src={finalUrl} label="Final Mix" />
+        <div>
+          <p className="text-dark-400 text-xs mb-1.5 font-medium uppercase tracking-wide">Remixed Version</p>
+          <AudioPlayer src={finalUrl} label="Final Mix" />
+        </div>
+      )}
+
+      {/* Original song */}
+      {originalUrl && (
+        <div>
+          <p className="text-dark-400 text-xs mb-1.5 font-medium uppercase tracking-wide flex items-center gap-1">
+            <Disc className="w-3 h-3" />Original Song
+          </p>
+          <AudioPlayer src={originalUrl} label="Original" />
+        </div>
       )}
 
       {/* Warnings */}
@@ -97,7 +114,6 @@ export function ResultsStep() {
 
       {/* Actions */}
       <div className="flex flex-wrap justify-center gap-3 pt-2">
-        {/* Save to Library */}
         <button
           onClick={handleSave}
           disabled={saving || !!lastSavedId}
@@ -111,7 +127,6 @@ export function ResultsStep() {
           {lastSavedId ? 'Saved' : saving ? 'Saving...' : 'Save to Library'}
         </button>
 
-        {/* Remix Again — keeps settings, goes back to options */}
         <button
           onClick={resetToOptions}
           className="flex items-center gap-2 px-5 py-2.5 bg-dark-600 hover:bg-dark-500 text-dark-200 rounded-lg transition-colors"
